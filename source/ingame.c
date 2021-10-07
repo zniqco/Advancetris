@@ -682,7 +682,7 @@ bool IWRAM_CODE ingame_test_block(s16 x, s16 y) {
     return true;
 }
 
-void ingame_game_over() {
+void IWRAM_CODE ingame_game_over() {
     tetrimino = -1;
     current_scene = SCENE_TITLE;
 }

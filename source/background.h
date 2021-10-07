@@ -13,6 +13,8 @@
 #include "sprites/background_9.h"
 #include "sprites/background_10.h"
 
+#define BACKGROUND_LOADING_FRAMES 4
+
 typedef struct {
     const unsigned int *image;
     const unsigned short *palette;

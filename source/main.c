@@ -18,7 +18,7 @@ void IWRAM_CODE write_u32_by_object(u16 x, u16 y, u16 palette, u32 value) {
     }
 }
 
-void init() {
+void IWRAM_CODE init() {
     // IRQ
     irqInit();
     irqEnable(IRQ_VBLANK);
@@ -49,7 +49,7 @@ void init() {
     background_init();
 }
 
-int main() {
+int IWRAM_CODE main() {
     init();
 
     // Debug

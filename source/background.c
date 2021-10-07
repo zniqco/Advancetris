@@ -13,10 +13,11 @@ const background_data backgrounds[10] = {
     { BACKGROUND_10_TILES, BACKGROUND_10_PALETTE },
 };
 
-const background_data *background_image = NULL;
-const background_data *background_image_next = NULL;
+const background_data *background_image;
+const background_data *background_image_next;
 s16 background_brightness;
 s16 background_brightness_latest;
+s16 background_loading_progress;
 
 void background_set_brightness(s16 brightness);
 
@@ -25,6 +26,7 @@ void IWRAM_CODE background_init() {
     background_image_next = NULL;
     background_brightness = 0;
     background_brightness_latest = 0;
+    background_loading_progress = 0;
 
     u16 *temp = (u16 *)MAP_BASE_ADR(4);
     u16 index = 168;
@@ -40,8 +42,8 @@ void IWRAM_CODE background_init() {
 
 void IWRAM_CODE background_set(const background_data *data) {
     background_image = data;
+    background_loading_progress = 0;
 
-    memory_copy32(PATRAM8(1, 168), background_image->image, 30 * 20 * 64);
     background_set_brightness(background_brightness_latest);
 }
 
@@ -77,12 +79,18 @@ void IWRAM_CODE background_update() {
                 background_brightness = 0;
             }
         } else {
-            background_brightness += 8;
+            if (background_loading_progress < BACKGROUND_LOADING_FRAMES) {
+                u16 offset = background_loading_progress++ * (30 * 20 / BACKGROUND_LOADING_FRAMES);
+                
+                memory_copy32(PATRAM8(1, 168 + offset), background_image->image + offset * 16, (30 * 20 / BACKGROUND_LOADING_FRAMES) * 64);
+            } else {
+                background_brightness += 8;
 
-            if (background_brightness > 100)
-                background_brightness = 100;
-            
-            background_set_brightness(background_brightness);
+                if (background_brightness > 100)
+                    background_brightness = 100;
+                
+                background_set_brightness(background_brightness);
+            }
         }
     }
 }
