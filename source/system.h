@@ -24,6 +24,8 @@ void put_text_format(void *target, u8 palette_id, const char *format, ...);
 void put_sprite_batch(void *target, u8 palette_id, const unsigned short *batch, u16 offset, u16 width, u16 height);
 void object_reset();
 void object_fetch(s16 x, s16 y, s16 character, u16 attr0, u16 attr1, u16 attr2);
+void sqran(u32 seed);
+s16 qran();
 s32 clamp(s32 value, s32 min, s32 max);
 s32 inverse_lerp(s32 value, s32 min, s32 max);
 void profile_start();

@@ -4,6 +4,7 @@ u16 key_previous_held_state = 0;
 u16 key_held_state = 0;
 u16 key_down_state = 0;
 u16 key_up_state = 0;
+u32 random_seed = 0x12345678;
 OBJATTR *current_object_pointer = OAM;
 
 void IWRAM_CODE memory_fill32(void *target, u32 value, u32 size) {
@@ -135,6 +136,16 @@ void IWRAM_CODE object_fetch(s16 x, s16 y, s16 character, u16 attr0, u16 attr1, 
     object->attr0 = OBJ_Y(y) | attr0;
     object->attr1 = OBJ_X(x) | attr1;
     object->attr2 = OBJ_CHAR(character) | attr2;
+}
+
+void IWRAM_CODE sqran(u32 seed) {
+    random_seed = seed;
+}
+
+s16 IWRAM_CODE qran() {
+    random_seed = 1664525 * random_seed + 1013904223;
+
+    return (random_seed >> 16) & 0x7FFF;
 }
 
 s32 IWRAM_CODE clamp(s32 value, s32 min, s32 max) {

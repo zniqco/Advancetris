@@ -111,7 +111,7 @@ void IWRAM_CODE ingame_init() {
     hold = -1;
     holdable = true;
 
-    srand(frame_count);
+    sqran(frame_count);
     ingame_set_tetrimino_next();
 }
 
@@ -362,7 +362,7 @@ void IWRAM_CODE ingame_set_tetrimino_next() {
             blocks[i] = i;
         
         for (s16 i = 6; i > 0; i--) {
-            u16 j = rand() % (i + 1);
+            u16 j = qran() % (i + 1);
             s8 temp = blocks[i];
 
             blocks[i] = blocks[j];
