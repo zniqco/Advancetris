@@ -1,10 +1,6 @@
 #include "main.h"
 
-u16 previous_scene = SCENE_NONE;
-u16 current_scene = SCENE_TITLE;
-u32 frame_count = 0;
-
-void IWRAM_CODE write_u32_by_object(u16 x, u16 y, u16 palette, u32 value) {
+IWRAM_CODE static void write_u32_by_object(u16 x, u16 y, u16 palette, u32 value) {
     while (true) {
         u32 current = DivMod(value, 10);
 
@@ -18,7 +14,7 @@ void IWRAM_CODE write_u32_by_object(u16 x, u16 y, u16 palette, u32 value) {
     }
 }
 
-void IWRAM_CODE init() {
+IWRAM_CODE int main() {
     // IRQ
     irqInit();
     irqEnable(IRQ_VBLANK);
@@ -47,10 +43,7 @@ void IWRAM_CODE init() {
 
     // Init
     background_init();
-}
-
-int IWRAM_CODE main() {
-    init();
+    scene_set(scene_title);
 
     // Debug
     u32 profile_max = 0;
@@ -64,51 +57,7 @@ int IWRAM_CODE main() {
         object_reset();
         input_update();
         background_update();
-
-        // Scene
-        if (previous_scene != current_scene) {
-            switch (previous_scene) {
-                case SCENE_TITLE:
-                    break;
-
-                case SCENE_MENU:
-                    break;
-
-                case SCENE_INGAME:
-                    ingame_cleanup();
-                    break;
-            }
-
-            switch (current_scene) {
-                case SCENE_TITLE:
-                    title_init();
-                    break;
-
-                case SCENE_MENU:
-                    menu_init();
-                    break;
-
-                case SCENE_INGAME:
-                    ingame_init();
-                    break;
-            }
-
-            previous_scene = current_scene;
-        }
-
-        switch (current_scene) {
-            case SCENE_TITLE:
-                title_update();
-                break;
-
-            case SCENE_MENU:
-                menu_update();
-                break;
-
-            case SCENE_INGAME:
-                ingame_update();
-                break;
-        }
+        scene_update();
 
         frame_count = (frame_count + 1) & 0x7FFFFFFF;
 

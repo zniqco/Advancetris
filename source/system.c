@@ -1,5 +1,6 @@
 #include "system.h"
 
+u32 frame_count = 0;
 u16 key_previous_held_state = 0;
 u16 key_held_state = 0;
 u16 key_down_state = 0;

@@ -1,6 +1,6 @@
-#include "title.h"
+#include "scene_title.h"
 
-void IWRAM_CODE title_init() {
+static void IWRAM_CODE init() {
     memory_copy32(PATRAM4(4, 64), TITLE_LEFT_TILES, TITLE_LEFT_TILES_LENGTH);
     memory_copy32(PALETTE_OBJ(0), TITLE_LEFT_PALETTE, TITLE_LEFT_PALETTE_LENGTH);
 
@@ -11,7 +11,7 @@ void IWRAM_CODE title_init() {
     memory_copy32(PALETTE_OBJ(2), TITLE_BACKGROUND_PALETTE, TITLE_BACKGROUND_PALETTE_LENGTH);
 }
 
-void IWRAM_CODE title_update() {
+static void IWRAM_CODE update() {
     s16 x = 120;
     s16 y = 80;
 
@@ -32,5 +32,11 @@ void IWRAM_CODE title_update() {
     object_fetch(x - 15, y + 1, 184, OBJ_16_COLOR | OBJ_SQUARE, OBJ_SIZE(2), OBJ_PALETTE(3));
 
     if (input_is_down(KEY_A))
-        current_scene = SCENE_INGAME;
+        scene_set(scene_ingame);
 }
+
+const scene_t scene_title = {
+	.init = init,
+    .cleanup = nothing,
+	.update = update,
+};

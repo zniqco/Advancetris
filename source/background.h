@@ -24,5 +24,4 @@ extern const background_data backgrounds[10];
 
 void background_init();
 void background_set(const background_data *data);
-void background_set_next(const background_data *data);
 void background_update();

@@ -1,11 +1,10 @@
 #pragma once
 
-#include <gba.h>
 #include "system.h"
-#include "main.h"
+#include "scene.h"
+#include "scene_ingame.h"
 #include "sprites/title_left.h"
 #include "sprites/title_right.h"
 #include "sprites/title_background.h"
 
-void title_init();
-void title_update();
+extern const scene_t scene_title;

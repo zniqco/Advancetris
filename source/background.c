@@ -13,20 +13,21 @@ const background_data backgrounds[10] = {
     { BACKGROUND_10_TILES, BACKGROUND_10_PALETTE },
 };
 
-const background_data *background_image;
-const background_data *background_image_next;
-s16 background_brightness;
-s16 background_brightness_latest;
-s16 background_loading_progress;
+static const background_data *current;
+static const background_data *next;
+static s16 brightness;
+static s16 brightness_latest;
+static s16 loading_progress;
 
-void background_set_brightness(s16 brightness);
+static void set_current(const background_data *data);
+static void set_brightness(s16 brightness);
 
 void IWRAM_CODE background_init() {
-    background_image = NULL;
-    background_image_next = NULL;
-    background_brightness = 0;
-    background_brightness_latest = 0;
-    background_loading_progress = 0;
+    current = NULL;
+    next = NULL;
+    brightness = 0;
+    brightness_latest = 0;
+    loading_progress = 0;
 
     u16 *temp = (u16 *)MAP_BASE_ADR(4);
     u16 index = 168;
@@ -37,60 +38,60 @@ void IWRAM_CODE background_init() {
     }
 
     memory_fill32(PALETTE_BG(0), 0, 96 * 2);
-    background_set_next(&backgrounds[0]);
+    background_set(&backgrounds[0]);
 }
 
 void IWRAM_CODE background_set(const background_data *data) {
-    background_image = data;
-    background_loading_progress = 0;
-
-    background_set_brightness(background_brightness_latest);
-}
-
-void IWRAM_CODE background_set_next(const background_data *data) {
-    if (background_image != data) {
-        if (background_image != NULL)
-            background_image_next = data;
+    if (current != data) {
+        if (current != NULL)
+            next = data;
         else
-            background_set(data);
-    }
-}
-
-void IWRAM_CODE background_set_brightness(s16 brightness) {
-    brightness = clamp(brightness, 0, 100);
-
-    if (background_brightness_latest != brightness) {
-        palette_copy(PALETTE_BG(0), background_image->palette, 96, brightness - 100);
-
-        background_brightness_latest = brightness;
+            set_current(data);
     }
 }
 
 void IWRAM_CODE background_update() {
-    if (background_image != NULL) {
-        if (background_image_next != NULL) {
-            background_brightness -= 8;
+    if (current != NULL) {
+        if (next != NULL) {
+            brightness -= 8;
 
-            if (background_brightness > 0) {
-                background_set_brightness(background_brightness);
+            if (brightness > 0) {
+                set_brightness(brightness);
             } else {
-                background_set(background_image_next);
-                background_image_next = NULL;
-                background_brightness = 0;
+                set_current(next);
+                next = NULL;
+                brightness = 0;
             }
         } else {
-            if (background_loading_progress < BACKGROUND_LOADING_FRAMES) {
-                u16 offset = background_loading_progress++ * (30 * 20 / BACKGROUND_LOADING_FRAMES);
+            if (loading_progress < BACKGROUND_LOADING_FRAMES) {
+                u16 offset = loading_progress++ * (30 * 20 / BACKGROUND_LOADING_FRAMES);
                 
-                memory_copy32(PATRAM8(1, 168 + offset), background_image->image + offset * 16, (30 * 20 / BACKGROUND_LOADING_FRAMES) * 64);
+                memory_copy32(PATRAM8(1, 168 + offset), current->image + offset * 16, (30 * 20 / BACKGROUND_LOADING_FRAMES) * 64);
             } else {
-                background_brightness += 8;
+                brightness += 8;
 
-                if (background_brightness > 100)
-                    background_brightness = 100;
+                if (brightness > 100)
+                    brightness = 100;
                 
-                background_set_brightness(background_brightness);
+                set_brightness(brightness);
             }
         }
+    }
+}
+
+static void IWRAM_CODE set_current(const background_data *data) {
+    current = data;
+    loading_progress = 0;
+
+    set_brightness(brightness_latest);
+}
+
+static void IWRAM_CODE set_brightness(s16 brightness) {
+    brightness = clamp(brightness, 0, 100);
+
+    if (brightness_latest != brightness) {
+        palette_copy(PALETTE_BG(0), current->palette, 96, brightness - 100);
+
+        brightness_latest = brightness;
     }
 }

@@ -10,6 +10,8 @@
 #define PALETTE_OBJ(m) (OBJ_COLORS + ((m) << 4))
 #define MAP_POSITION_W32(m,x,y) ((u16 *)MAP_BASE_ADR(m) + (x) + (y) * 32)
 
+extern u32 frame_count;
+
 void memory_fill32(void *target, u32 value, u32 size);
 void memory_copy32(void *target, const void *source, u32 size);
 void palette_copy(void *target, const void *source, u32 size, s16 brightness);

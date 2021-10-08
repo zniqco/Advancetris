@@ -1,24 +1,24 @@
-#include "menu.h"
+#include "scene_menu.h"
 
-u16 x = 0;
-u16 y = 0;
+static u16 x = 0;
+static u16 y = 0;
 
-u16 current_index = 0;
-u32 current_selections = 0;
-u16 current_level = 0;
+static u16 current_index = 0;
+static u32 current_selections = 0;
+static u16 current_level = 0;
 
-u16 drawing_index = 0;
-u16 drawing_level = 0;
-u32 drawing_selections = 0;
-u16 drawing_count = 0;
+static u16 drawing_index = 0;
+static u16 drawing_level = 0;
+static u32 drawing_selections = 0;
+static u16 drawing_count = 0;
 
-void menu_begin();
-bool menu_item(const char *caption);
-void menu_sub_begin();
-void menu_sub_end();
-void menu_end();
+static void menu_begin();
+static bool menu_item(const char *caption);
+static void menu_sub_begin();
+static void menu_sub_end();
+static void menu_end();
 
-void menu_init() {
+static void IWRAM_CODE init() {
     current_index = 0;
     current_selections = 0;
     current_level = 0;
@@ -26,11 +26,11 @@ void menu_init() {
     map_clear(5);
 }
 
-void menu_update() {
+static void IWRAM_CODE update() {
     menu_begin();
 
     if (menu_item("START")) {
-        current_scene = SCENE_INGAME;
+        scene_set(scene_ingame);
     }
 
     if (menu_item("OPTION")) {
@@ -50,7 +50,7 @@ void menu_update() {
     menu_end();
 }
 
-void menu_begin() {
+static void IWRAM_CODE menu_begin() {
     x = 0;
     y = 0;
     drawing_index = 0;
@@ -59,7 +59,7 @@ void menu_begin() {
     drawing_count = 0;
 }
 
-bool menu_item(const char *caption) {
+static bool IWRAM_CODE menu_item(const char *caption) {
     u16 index = drawing_index++;
 
     if (current_level == drawing_level) {
@@ -74,21 +74,21 @@ bool menu_item(const char *caption) {
     return false;
 }
 
-void menu_sub_begin() {
+static void IWRAM_CODE menu_sub_begin() {
     drawing_selections = (drawing_selections << 4) | (drawing_index - 1);
     drawing_index = 0;
 
     ++drawing_level;
 }
 
-void menu_sub_end() {
+static void IWRAM_CODE menu_sub_end() {
     drawing_index = (drawing_selections & 0x0F) + 1;
     drawing_selections = drawing_selections >> 4;
 
     --drawing_level;
 }
 
-void menu_end() {
+static void IWRAM_CODE menu_end() {
     BG_OFFSET[1].y = y * 4;
 
     if (input_is_down(KEY_A)) {
@@ -113,3 +113,9 @@ void menu_end() {
             ++current_index;
     }
 }
+
+const scene_t scene_menu = {
+	.init = init,
+    .cleanup = nothing,
+	.update = update,
+};

@@ -1,56 +1,56 @@
-#include "ingame.h"
+#include "scene_ingame.h"
 
-u8 board[BOARD_HEIGHT][BOARD_WIDTH];
+static u8 board[BOARD_HEIGHT][BOARD_WIDTH];
 
-s8 next_blocks[16];
-u8 next_index;
-u8 next_count;
+static s8 next_blocks[16];
+static u8 next_index;
+static u8 next_count;
 
-u16 level;
-u32 score;
-u32 lines;
-u16 combo;
-u16 b2b;
-s8 hold;
-bool holdable;
+static u16 level;
+static u32 score;
+static u32 lines;
+static u16 combo;
+static u16 b2b;
+static s8 hold;
+static bool holdable;
 
-s8 tetrimino;
-u8 tetrimino_rotation;
-s8 tetrimino_x;
-s8 tetrimino_y;
-u8 tspin_state;
+static s8 tetrimino;
+static u8 tetrimino_rotation;
+static s8 tetrimino_x;
+static s8 tetrimino_y;
+static u8 tspin_state;
 
-u32 gravity; // 1/10000 scale
-u32 gravity_tick;
-s16 lock_frame_max;
-s16 lock_frame;
-s16 lock_resetable_y;
-s16 lock_resetable_frame;
+static u32 gravity; // 1/10000 scale
+static u32 gravity_tick;
+static s16 lock_frame_max;
+static s16 lock_frame;
+static s16 lock_resetable_y;
+static s16 lock_resetable_frame;
 
-s16 softdrop_delay;
-s8 arr_direction;
-s16 arr_delay;
+static s16 softdrop_delay;
+static s8 arr_direction;
+static s16 arr_delay;
 
-s16 clear_remain_frame;
-u8 clear_tspin;
-u8 clear_lines;
-u16 clear_combo;
-bool clear_is_b2b;
-bool clear_is_all_clear;
+static s16 clear_remain_frame;
+static u8 clear_tspin;
+static u8 clear_lines;
+static u16 clear_combo;
+static bool clear_is_b2b;
+static bool clear_is_all_clear;
 
-void ingame_set_level(u16 level);
-void ingame_set_tetrimino(s8 index);
-void ingame_set_tetrimino_next();
-bool ingame_test_tetrimino(s8 offset_x, s8 offset_y);
-void ingame_place_tetrimino();
-void ingame_rotate_tetrimino(bool is_ccw);
-u16 ingame_drop_offset_tetrimino();
-void ingame_set_block(s16 x, s16 y, u8 index);
-bool ingame_test_block(s16 x, s16 y);
-void ingame_write_u32_by_object(u16 x, u16 y, u16 palette, u32 value);
-void ingame_game_over();
+static void set_level(u16 level);
+static void set_tetrimino(s8 index);
+static void set_tetrimino_next();
+static bool test_tetrimino(s8 offset_x, s8 offset_y);
+static void place_tetrimino();
+static void rotate_tetrimino(bool is_ccw);
+static u16 drop_offset_tetrimino();
+static void set_block(s16 x, s16 y, u8 index);
+static bool test_block(s16 x, s16 y);
+static void write_u32_by_object(u16 x, u16 y, u16 palette, u32 value);
+static void game_over();
 
-void IWRAM_CODE ingame_init() {
+static void IWRAM_CODE init() {
     REG_DISPCNT = MODE_1 | OBJ_ON | BG0_ON | BG1_ON | BG2_ON | OBJ_1D_MAP;
 
     // HACK: Align 8x8 to 7x7 for blocks
@@ -97,9 +97,9 @@ void IWRAM_CODE ingame_init() {
     memory_fill32(MAP_BASE_ADR(6), 0, 32 * 32);
 
     // Level setting
-    ingame_set_level(1);
+    set_level(1);
 
-    background_set_next(marathon_level_background[level - 1]);
+    background_set(marathon_level_background[level - 1]);
 
     // Stats
     next_index = 0;
@@ -112,24 +112,24 @@ void IWRAM_CODE ingame_init() {
     holdable = true;
 
     sqran(frame_count);
-    ingame_set_tetrimino_next();
+    set_tetrimino_next();
 }
 
-void IWRAM_CODE ingame_cleanup() {
+static void IWRAM_CODE cleanup() {
     map_clear(5);
     map_clear(6);
 }
 
-void IWRAM_CODE ingame_update() {
+static void IWRAM_CODE update() {
     // Hard drop
     if (tetrimino >= 0) {
         if (input_is_down(KEY_UP)) {
-            u16 drop_offset = ingame_drop_offset_tetrimino();
+            u16 drop_offset = drop_offset_tetrimino();
 
             tetrimino_y -= drop_offset;
             score += drop_offset;
 
-            ingame_place_tetrimino();
+            place_tetrimino();
         }
 
         // Move
@@ -141,7 +141,7 @@ void IWRAM_CODE ingame_update() {
             pressed = 1;
 
         if (pressed != 0) {
-            if (ingame_test_tetrimino(pressed, 0)) {
+            if (test_tetrimino(pressed, 0)) {
                 tetrimino_x += pressed;
                 lock_frame = lock_frame_max;
             }
@@ -157,7 +157,7 @@ void IWRAM_CODE ingame_update() {
 
         if (arr_direction != 0) {
             if (--arr_delay <= 0) {
-                if (ingame_test_tetrimino(arr_direction, 0)) {
+                if (test_tetrimino(arr_direction, 0)) {
                     tetrimino_x += arr_direction;
                     lock_frame = lock_frame_max;
                 }
@@ -169,7 +169,7 @@ void IWRAM_CODE ingame_update() {
         // Soft drop
         if (input_is_held(KEY_DOWN)) {
             if (--softdrop_delay <= 0) {
-                if (ingame_test_tetrimino(0, -1)) {
+                if (test_tetrimino(0, -1)) {
                     --tetrimino_y;
                     ++score;
 
@@ -182,20 +182,20 @@ void IWRAM_CODE ingame_update() {
 
         // Rotate
         if (input_is_down(KEY_A))
-            ingame_rotate_tetrimino(true);
+            rotate_tetrimino(true);
 
         if (input_is_down(KEY_B))
-            ingame_rotate_tetrimino(false);
+            rotate_tetrimino(false);
         
         if (holdable && input_is_down(KEY_L)) {
             if (hold >= 0) {
                 s8 temp = hold;
 
                 hold = tetrimino;
-                ingame_set_tetrimino(temp);
+                set_tetrimino(temp);
             } else {
                 hold = tetrimino;
-                ingame_set_tetrimino_next();
+                set_tetrimino_next();
             }
 
             holdable = false;
@@ -205,7 +205,7 @@ void IWRAM_CODE ingame_update() {
         gravity_tick += gravity;
 
         while (gravity_tick >= 10000) {
-            if (ingame_test_tetrimino(0, -1)) {
+            if (test_tetrimino(0, -1)) {
                 --tetrimino_y;
                 gravity_tick -= 10000;
             } else {
@@ -214,7 +214,7 @@ void IWRAM_CODE ingame_update() {
         }
 
         // Lock
-        u16 drop_offset = ingame_drop_offset_tetrimino();
+        u16 drop_offset = drop_offset_tetrimino();
 
         if (drop_offset == 0) {
             if (lock_resetable_y > tetrimino_y) {
@@ -226,7 +226,7 @@ void IWRAM_CODE ingame_update() {
             --lock_frame;
 
             if (lock_frame <= 0 || lock_resetable_frame <= 0)
-                ingame_place_tetrimino();
+                place_tetrimino();
         } else {
             --lock_resetable_frame;
         }
@@ -327,21 +327,21 @@ void IWRAM_CODE ingame_update() {
     }
 
     // Stats
-    ingame_write_u32_by_object(70, 63, 14, score);
-    ingame_write_u32_by_object(70, 63 + 24, 14, lines);
-    ingame_write_u32_by_object(70, 63 + 48, 14, level);
+    write_u32_by_object(70, 63, 14, score);
+    write_u32_by_object(70, 63 + 24, 14, lines);
+    write_u32_by_object(70, 63 + 48, 14, level);
 }
 
-void IWRAM_CODE ingame_set_level(u16 value) {
+static void IWRAM_CODE set_level(u16 value) {
     level = value;
 
     gravity = marathon_level_gravity[value - 1];
     lock_frame_max = marathon_lock_delay[value - 1];
 
-    background_set_next(marathon_level_background[value - 1]);
+    background_set(marathon_level_background[value - 1]);
 }
 
-void IWRAM_CODE ingame_set_tetrimino(s8 index) {
+static void IWRAM_CODE set_tetrimino(s8 index) {
     tetrimino = index;
     tetrimino_rotation = 0;
     tetrimino_x = 3;
@@ -354,7 +354,7 @@ void IWRAM_CODE ingame_set_tetrimino(s8 index) {
     lock_resetable_frame = 0;
 }
 
-void IWRAM_CODE ingame_set_tetrimino_next() {
+static void IWRAM_CODE set_tetrimino_next() {
     while (next_count <= 5) {
         s8 blocks[7];
 
@@ -373,13 +373,13 @@ void IWRAM_CODE ingame_set_tetrimino_next() {
             next_blocks[(next_index + next_count++) & 0x0F] = blocks[i];
     }
 
-    ingame_set_tetrimino(next_blocks[next_index]);
+    set_tetrimino(next_blocks[next_index]);
 
     next_index = (next_index + 1) & 0x0F;
     --next_count;
 }
 
-bool IWRAM_CODE ingame_test_tetrimino(s8 offset_x, s8 offset_y) {
+static bool IWRAM_CODE test_tetrimino(s8 offset_x, s8 offset_y) {
     for (s16 j = 0; j < 4; ++j) {
         for (s16 i = 0; i < 4; ++i) {
             u8 current = tetrimino_shape[tetrimino][tetrimino_rotation][((3 - j) * 4) + i];
@@ -388,7 +388,7 @@ bool IWRAM_CODE ingame_test_tetrimino(s8 offset_x, s8 offset_y) {
                 s16 x = tetrimino_x + offset_x + i;
                 s16 y = tetrimino_y + offset_y + j;
 
-                if (!ingame_test_block(x, y))
+                if (!test_block(x, y))
                     return false;
             }
         }
@@ -397,7 +397,7 @@ bool IWRAM_CODE ingame_test_tetrimino(s8 offset_x, s8 offset_y) {
     return true;
 }
 
-void IWRAM_CODE ingame_place_tetrimino() {
+static void IWRAM_CODE place_tetrimino() {
     // Set blocks
     u16 highest_y = 0;
 
@@ -413,7 +413,7 @@ void IWRAM_CODE ingame_place_tetrimino() {
                     continue;
 
                 if (y < BOARD_HEIGHT)
-                    ingame_set_block(x, y, current);
+                    set_block(x, y, current);
 
                 if (highest_y < y)
                     highest_y = y;
@@ -444,11 +444,11 @@ void IWRAM_CODE ingame_place_tetrimino() {
 
             if (cleared > 0) {
                 for (s16 i = 0; i < BOARD_WIDTH; ++i)
-                    ingame_set_block(i, j - cleared, board[j][i]);
+                    set_block(i, j - cleared, board[j][i]);
 
                 if (j >= BOARD_HEIGHT - cleared) {
                     for (s16 i = 0; i < BOARD_WIDTH; ++i) 
-                        ingame_set_block(i, j, 0);
+                        set_block(i, j, 0);
                 }
             }
         }
@@ -542,7 +542,7 @@ void IWRAM_CODE ingame_place_tetrimino() {
     }
 
     if (highest_y >= 22 || !is_placeable) {
-        ingame_game_over();
+        game_over();
     } else {
         // Level
         u16 target_level = (lines / MARATHON_LINES_PER_LEVEL) + 1;
@@ -551,13 +551,13 @@ void IWRAM_CODE ingame_place_tetrimino() {
             target_level = MARATHON_MAX_LEVEL;
 
         if (target_level > level)
-            ingame_set_level(target_level);
+            set_level(target_level);
 
-        ingame_set_tetrimino_next();
+        set_tetrimino_next();
     }
 }
 
-u16 IWRAM_CODE ingame_drop_offset_tetrimino() {
+static u16 IWRAM_CODE drop_offset_tetrimino() {
     u16 min_offset = BOARD_HEIGHT;
 
     for (s16 i = 0; i < 4; ++i) {
@@ -590,7 +590,7 @@ u16 IWRAM_CODE ingame_drop_offset_tetrimino() {
     return min_offset;
 }
 
-void IWRAM_CODE ingame_rotate_tetrimino(bool is_clockwise) {
+static void IWRAM_CODE rotate_tetrimino(bool is_clockwise) {
     u8 previous_rotation = tetrimino_rotation;
     s16 kick_base_index;
 
@@ -617,7 +617,7 @@ void IWRAM_CODE ingame_rotate_tetrimino(bool is_clockwise) {
         s8 kick_x = tetrimino_kick[tetrimino][kick_index][0];
         s8 kick_y = tetrimino_kick[tetrimino][kick_index][1];
 
-        if (ingame_test_tetrimino(kick_x, kick_y)) {
+        if (test_tetrimino(kick_x, kick_y)) {
             tetrimino_x += kick_x;
             tetrimino_y += kick_y;
             success = true;
@@ -634,10 +634,10 @@ void IWRAM_CODE ingame_rotate_tetrimino(bool is_clockwise) {
         // T-spin
         if (tetrimino == 6) {
             u8 corners[4] = {
-                ingame_test_block(tetrimino_x, tetrimino_y + 3) ? 0 : 1, // LU
-                ingame_test_block(tetrimino_x + 2, tetrimino_y + 3) ? 0 : 1, // RU
-                ingame_test_block(tetrimino_x + 2, tetrimino_y + 1) ? 0 : 1, // RD
-                ingame_test_block(tetrimino_x, tetrimino_y + 1) ? 0 : 1, // LD
+                test_block(tetrimino_x, tetrimino_y + 3) ? 0 : 1, // LU
+                test_block(tetrimino_x + 2, tetrimino_y + 3) ? 0 : 1, // RU
+                test_block(tetrimino_x + 2, tetrimino_y + 1) ? 0 : 1, // RD
+                test_block(tetrimino_x, tetrimino_y + 1) ? 0 : 1, // LD
             };
 
             if (corners[0] + corners[1] + corners[2] + corners[3] >= 3) {
@@ -655,7 +655,7 @@ void IWRAM_CODE ingame_rotate_tetrimino(bool is_clockwise) {
     }
 }
 
-void IWRAM_CODE ingame_set_block(s16 x, s16 y, u8 index) {
+static void IWRAM_CODE set_block(s16 x, s16 y, u8 index) {
     if (board[y][x] != index) {
         board[y][x] = index;
 
@@ -672,7 +672,7 @@ void IWRAM_CODE ingame_set_block(s16 x, s16 y, u8 index) {
     }
 }
 
-bool IWRAM_CODE ingame_test_block(s16 x, s16 y) {
+static bool IWRAM_CODE test_block(s16 x, s16 y) {
     if (x < 0 || x >= BOARD_WIDTH || y < 0)
         return false;
 
@@ -682,12 +682,12 @@ bool IWRAM_CODE ingame_test_block(s16 x, s16 y) {
     return true;
 }
 
-void IWRAM_CODE ingame_game_over() {
+static void IWRAM_CODE game_over() {
     tetrimino = -1;
-    current_scene = SCENE_TITLE;
+    scene_set(scene_title);
 }
 
-void IWRAM_CODE ingame_write_u32_by_object(u16 x, u16 y, u16 palette, u32 value) {
+static void IWRAM_CODE write_u32_by_object(u16 x, u16 y, u16 palette, u32 value) {
     while (true) {
         u32 current = DivMod(value, 10);
 
@@ -700,3 +700,9 @@ void IWRAM_CODE ingame_write_u32_by_object(u16 x, u16 y, u16 palette, u32 value)
         x -= 8;
     }
 }
+
+const scene_t scene_ingame = {
+	.init = init,
+    .cleanup = cleanup,
+	.update = update,
+};

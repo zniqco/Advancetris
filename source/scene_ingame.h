@@ -1,9 +1,10 @@
 #pragma once
 
 #include "system.h"
+#include "scene.h"
+#include "scene_title.h"
 #include "tetrimino.h"
 #include "level.h"
-#include "main.h"
 #include "sprites/font.h"
 #include "sprites/board.h"
 #include "sprites/blocks.h"
@@ -43,6 +44,4 @@ enum LINES {
     LINES_TETRIS,
 };
 
-void ingame_init();
-void ingame_cleanup();
-void ingame_update();
+extern const scene_t scene_ingame;
