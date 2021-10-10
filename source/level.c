@@ -1,6 +1,6 @@
 #include "level.h"
 
-const u32 marathon_level_gravity[20] = {
+const u32 marathon_level_gravity[MARATHON_MAX_LEVEL] = {
     167,
     210,
     270,
@@ -23,7 +23,7 @@ const u32 marathon_level_gravity[20] = {
     200000,
 };
 
-const u16 marathon_lock_delay[20] = {
+const u16 marathon_lock_delay[MARATHON_MAX_LEVEL] = {
     85,
     80,
     75,
@@ -46,7 +46,7 @@ const u16 marathon_lock_delay[20] = {
     35,
 };
 
-const background_data *marathon_level_background[20] = {
+const background_data *marathon_level_background[MARATHON_MAX_LEVEL] = {
     &backgrounds[0],
     &backgrounds[1],
     &backgrounds[2],

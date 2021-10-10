@@ -1,5 +1,29 @@
 #include "scene_ingame.h"
 
+#define BOARD_WIDTH 10
+#define BOARD_HEIGHT 28
+#define BOARD_DRAW_X 85
+#define BOARD_DRAW_Y 150
+#define BOARD_VISIBLE_HEIGHT 20
+
+#define ARR 1
+#define DAS 12
+#define DCD 2
+#define SDF 40
+#define LOCK_RESETABLE_FRAME(f) ((f) * 2 + 12) // LOCK_FRAME * 2 + 12
+
+#define TILE_POSITION_BLOCKS 32
+#define TILE_POSITION_NEXT (TILE_POSITION_BLOCKS + 8)
+#define TEXTS_OFFSET 192
+#define TEXTS_CLEAR_OFFSET (TEXTS_OFFSET + 4)
+#define CLEAR_DISPLAY_FRAME 75
+
+typedef enum {
+    TSPIN_NONE,
+    TSPIN_NORMAL,
+    TSPIN_MINI,
+} TSPIN;
+
 static u8 board[BOARD_HEIGHT][BOARD_WIDTH];
 
 static s8 next_blocks[16];
@@ -32,8 +56,8 @@ static s8 arr_direction;
 static s16 arr_delay;
 
 static s16 clear_remain_frame;
-static u8 clear_tspin;
-static u8 clear_lines;
+static TSPIN clear_tspin;
+static s8 clear_lines;
 static u16 clear_combo;
 static bool clear_is_b2b;
 static bool clear_is_all_clear;
@@ -87,6 +111,7 @@ static void IWRAM_CODE init() {
 
     // Clear texts
     memory_copy32(PATRAM4(4, TEXTS_OFFSET), TEXTS_TILES, TEXTS_TILES_LENGTH);
+    memory_copy32(PATRAM4(4, TEXTS_CLEAR_OFFSET), TEXTS_CLEAR_TILES, TEXTS_CLEAR_TILES_LENGTH);
 
     // Transparent for ghost
     REG_BLDCNT = 0x2F40; // 101111 01 000000;
@@ -275,10 +300,10 @@ static void IWRAM_CODE update() {
         s16 offset_x = (offset_x_delta * offset_x_delta * offset_x_delta * offset_x_delta) / 32000; // Ease out quartic?
         s16 y = 149;
 
-        palette_copy(PALETTE_OBJ(7), TEXTS_PALETTE, 16, inverse_lerp(clear_current_frame, 18, 0));
+        palette_copy(PALETTE_OBJ(7), TEXTS_CLEAR_PALETTE, 16, inverse_lerp(clear_current_frame, 18, 0));
 
         if (clear_combo >= 2) {
-            object_fetch(46 - offset_x, y, TEXTS_OFFSET + 32, OBJ_16_COLOR | OBJ_WIDE, OBJ_SIZE(1), OBJ_PALETTE(7));
+            object_fetch(46 - offset_x, y, TEXTS_CLEAR_OFFSET + 32, OBJ_16_COLOR | OBJ_WIDE, OBJ_SIZE(1), OBJ_PALETTE(7));
 
             u32 value = clear_combo;
             u32 x = 43 - offset_x;
@@ -286,7 +311,7 @@ static void IWRAM_CODE update() {
             while (true) {
                 u32 current = DivMod(value, 10);
 
-                object_fetch(x, y, TEXTS_OFFSET + 36 + current, OBJ_16_COLOR | OBJ_SQUARE, OBJ_SIZE(0), OBJ_PALETTE(7));
+                object_fetch(x, y, TEXTS_CLEAR_OFFSET + 36 + current, OBJ_16_COLOR | OBJ_SQUARE, OBJ_SIZE(0), OBJ_PALETTE(7));
 
                 if (value < 10)
                     break;
@@ -299,28 +324,28 @@ static void IWRAM_CODE update() {
         }
 
         if (clear_lines >= 1) {
-            object_fetch(46 - offset_x, y, TEXTS_OFFSET + (clear_lines - 1) * 4, OBJ_16_COLOR | OBJ_WIDE, OBJ_SIZE(1), OBJ_PALETTE(7));
+            object_fetch(46 - offset_x, y, TEXTS_CLEAR_OFFSET + (clear_lines - 1) * 4, OBJ_16_COLOR | OBJ_WIDE, OBJ_SIZE(1), OBJ_PALETTE(7));
 
             y -= 6;
         }
 
         if (clear_tspin == TSPIN_NORMAL) {
-            object_fetch(46 - offset_x, y, TEXTS_OFFSET + 16, OBJ_16_COLOR | OBJ_WIDE, OBJ_SIZE(1), OBJ_PALETTE(7));
+            object_fetch(46 - offset_x, y, TEXTS_CLEAR_OFFSET + 16, OBJ_16_COLOR | OBJ_WIDE, OBJ_SIZE(1), OBJ_PALETTE(7));
 
             y -= 6;
         } else if (clear_tspin == TSPIN_MINI) {
-            object_fetch(24 - offset_x, y, TEXTS_OFFSET + 16, OBJ_16_COLOR | OBJ_WIDE, OBJ_SIZE(1), OBJ_PALETTE(7));
-            object_fetch(46 - offset_x, y, TEXTS_OFFSET + 20, OBJ_16_COLOR | OBJ_WIDE, OBJ_SIZE(1), OBJ_PALETTE(7));
+            object_fetch(24 - offset_x, y, TEXTS_CLEAR_OFFSET + 16, OBJ_16_COLOR | OBJ_WIDE, OBJ_SIZE(1), OBJ_PALETTE(7));
+            object_fetch(46 - offset_x, y, TEXTS_CLEAR_OFFSET + 20, OBJ_16_COLOR | OBJ_WIDE, OBJ_SIZE(1), OBJ_PALETTE(7));
 
             y -= 6;
         }
 
         if (clear_is_b2b)
-            object_fetch(62 - offset_x, y, TEXTS_OFFSET + 24, OBJ_16_COLOR | OBJ_WIDE, OBJ_SIZE(0), OBJ_PALETTE(7));
+            object_fetch(62 - offset_x, y, TEXTS_CLEAR_OFFSET + 24, OBJ_16_COLOR | OBJ_WIDE, OBJ_SIZE(0), OBJ_PALETTE(7));
 
         if (clear_is_all_clear) {
-            object_fetch(163 + offset_x, 149, TEXTS_OFFSET + 26, OBJ_16_COLOR | OBJ_WIDE, OBJ_SIZE(1), OBJ_PALETTE(7));
-            object_fetch(195 + offset_x, 149, TEXTS_OFFSET + 30, OBJ_16_COLOR | OBJ_WIDE, OBJ_SIZE(0), OBJ_PALETTE(7));
+            object_fetch(163 + offset_x, 149, TEXTS_CLEAR_OFFSET + 26, OBJ_16_COLOR | OBJ_WIDE, OBJ_SIZE(1), OBJ_PALETTE(7));
+            object_fetch(195 + offset_x, 149, TEXTS_CLEAR_OFFSET + 30, OBJ_16_COLOR | OBJ_WIDE, OBJ_SIZE(0), OBJ_PALETTE(7));
         }
 
         --clear_remain_frame;
