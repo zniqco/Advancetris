@@ -387,7 +387,7 @@ static void IWRAM_CODE set_tetrimino_next() {
             blocks[i] = i;
         
         for (s16 i = 6; i > 0; i--) {
-            u16 j = qran() % (i + 1);
+            u16 j = DivMod(qran(), i + 1);
             s8 temp = blocks[i];
 
             blocks[i] = blocks[j];
