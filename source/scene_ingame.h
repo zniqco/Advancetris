@@ -10,6 +10,7 @@
 #include "sprites/blocks.h"
 #include "sprites/blocks8.h"
 #include "sprites/next_pieces.h"
+#include "sprites/texts.h"
 #include "sprites/texts_clear.h"
 
 extern const scene_t scene_ingame;

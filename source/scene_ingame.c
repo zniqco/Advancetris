@@ -12,17 +12,26 @@
 #define SDF 40
 #define LOCK_RESETABLE_FRAME(f) ((f) * 2 + 12) // LOCK_FRAME * 2 + 12
 
-#define TILE_POSITION_BLOCKS 32
-#define TILE_POSITION_NEXT (TILE_POSITION_BLOCKS + 8)
-#define TEXTS_OFFSET 192
+#define BLOCKS_OFFSET 32
+#define NEXT_PIECES_OFFSET (BLOCKS_OFFSET + 10)
+#define TEXTS_OFFSET 200
 #define TEXTS_CLEAR_OFFSET (TEXTS_OFFSET + 4)
 #define CLEAR_DISPLAY_FRAME 75
+
+typedef enum {
+    STATE_READY,
+    STATE_PLAYING,
+    STATE_END,
+} STATE;
 
 typedef enum {
     TSPIN_NONE,
     TSPIN_NORMAL,
     TSPIN_MINI,
 } TSPIN;
+
+static STATE state;
+static s16 ready_frame;
 
 static u8 board[BOARD_HEIGHT][BOARD_WIDTH];
 
@@ -101,8 +110,8 @@ static void IWRAM_CODE init() {
     put_sprite_batch(MAP_POSITION_W32(5, 6, 2), 13, BOARD_MAP, 64, 18, 19);
 
     // Block and next
-    memory_copy32(PATRAM8(4, TILE_POSITION_BLOCKS), BLOCKS_TILES, BLOCKS_TILES_LENGTH);
-    memory_copy32(PATRAM8(4, TILE_POSITION_NEXT), NEXT_PIECES_TILES, NEXT_PIECES_TILES_LENGTH);
+    memory_copy32(PATRAM8(4, BLOCKS_OFFSET), BLOCKS_TILES, BLOCKS_TILES_LENGTH);
+    memory_copy32(PATRAM8(4, NEXT_PIECES_OFFSET), NEXT_PIECES_TILES, NEXT_PIECES_TILES_LENGTH);
     memory_copy32(PALETTE_OBJ(8), BLOCKS_PALETTE, BLOCKS_PALETTE_LENGTH);
 
     // 8px Block (for Hack)
@@ -112,6 +121,8 @@ static void IWRAM_CODE init() {
     // Clear texts
     memory_copy32(PATRAM4(4, TEXTS_OFFSET), TEXTS_TILES, TEXTS_TILES_LENGTH);
     memory_copy32(PATRAM4(4, TEXTS_CLEAR_OFFSET), TEXTS_CLEAR_TILES, TEXTS_CLEAR_TILES_LENGTH);
+
+    palette_copy(PALETTE_OBJ(7), TEXTS_PALETTE, 16, 0);
 
     // Transparent for ghost
     REG_BLDCNT = 0x2F40; // 101111 01 000000;
@@ -127,6 +138,9 @@ static void IWRAM_CODE init() {
     background_set(marathon_level_background[level - 1]);
 
     // Stats
+    state = STATE_READY;
+    ready_frame = 0;
+
     next_index = 0;
     next_count = 0;    
     score = 0;
@@ -146,152 +160,162 @@ static void IWRAM_CODE cleanup() {
 }
 
 static void IWRAM_CODE update() {
-    // Hard drop
-    if (tetrimino >= 0) {
-        if (input_is_down(KEY_UP)) {
-            u16 drop_offset = drop_offset_tetrimino();
+    switch (state) {
+        case STATE_READY:
+            object_fetch(105, 77, TEXTS_OFFSET, OBJ_16_COLOR | OBJ_WIDE, OBJ_SIZE(1), OBJ_PALETTE(7));
 
-            tetrimino_y -= drop_offset;
-            score += drop_offset;
+            if (++ready_frame >= 90)
+                state = STATE_PLAYING;
 
-            place_tetrimino();
-        }
+            break;
 
-        // Move
-        s8 pressed = 0;
+        case STATE_PLAYING:
+            // Hard drop
+            if (input_is_down(KEY_UP)) {
+                u16 drop_offset = drop_offset_tetrimino();
 
-        if (input_is_down(KEY_LEFT))
-            pressed = -1;
-        else if (input_is_down(KEY_RIGHT))
-            pressed = 1;
+                tetrimino_y -= drop_offset;
+                score += drop_offset;
 
-        if (pressed != 0) {
-            if (test_tetrimino(pressed, 0)) {
-                tetrimino_x += pressed;
-                lock_frame = lock_frame_max;
+                place_tetrimino();
             }
-                
-            if (arr_direction != pressed) {
-                arr_direction = pressed;
-                arr_delay = DAS;
-            }
-        }
 
-        if ((input_is_up(KEY_LEFT) && arr_direction == -1) || (input_is_up(KEY_RIGHT) && arr_direction == 1))
-            arr_direction = 0;
+            // Move
+            s8 pressed = 0;
 
-        if (arr_direction != 0) {
-            if (--arr_delay <= 0) {
-                if (test_tetrimino(arr_direction, 0)) {
-                    tetrimino_x += arr_direction;
+            if (input_is_down(KEY_LEFT))
+                pressed = -1;
+            else if (input_is_down(KEY_RIGHT))
+                pressed = 1;
+
+            if (pressed != 0) {
+                if (test_tetrimino(pressed, 0)) {
+                    tetrimino_x += pressed;
                     lock_frame = lock_frame_max;
                 }
-                
-                arr_delay = ARR;
-            }
-        }
-
-        // Soft drop
-        if (input_is_held(KEY_DOWN)) {
-            if (--softdrop_delay <= 0) {
-                if (test_tetrimino(0, -1)) {
-                    --tetrimino_y;
-                    ++score;
-
-                    softdrop_delay = 1;
+                    
+                if (arr_direction != pressed) {
+                    arr_direction = pressed;
+                    arr_delay = DAS;
                 }
             }
-        } else {
-            softdrop_delay = 0;
-        }
 
-        // Rotate
-        if (input_is_down(KEY_A))
-            rotate_tetrimino(true);
+            if ((input_is_up(KEY_LEFT) && arr_direction == -1) || (input_is_up(KEY_RIGHT) && arr_direction == 1))
+                arr_direction = 0;
 
-        if (input_is_down(KEY_B))
-            rotate_tetrimino(false);
-        
-        if (holdable && input_is_down(KEY_L)) {
-            if (hold >= 0) {
-                s8 temp = hold;
+            if (arr_direction != 0) {
+                if (--arr_delay <= 0) {
+                    if (test_tetrimino(arr_direction, 0)) {
+                        tetrimino_x += arr_direction;
+                        lock_frame = lock_frame_max;
+                    }
+                    
+                    arr_delay = ARR;
+                }
+            }
 
-                hold = tetrimino;
-                set_tetrimino(temp);
+            // Soft drop
+            if (input_is_held(KEY_DOWN)) {
+                if (--softdrop_delay <= 0) {
+                    if (test_tetrimino(0, -1)) {
+                        --tetrimino_y;
+                        ++score;
+
+                        softdrop_delay = 1;
+                    }
+                }
             } else {
-                hold = tetrimino;
-                set_tetrimino_next();
+                softdrop_delay = 0;
             }
 
-            holdable = false;
-        }
+            // Rotate
+            if (input_is_down(KEY_A))
+                rotate_tetrimino(true);
 
-        // Gravity
-        gravity_tick += gravity;
+            if (input_is_down(KEY_B))
+                rotate_tetrimino(false);
+            
+            if (holdable && input_is_down(KEY_L)) {
+                if (hold >= 0) {
+                    s8 temp = hold;
 
-        while (gravity_tick >= 10000) {
-            if (test_tetrimino(0, -1)) {
-                --tetrimino_y;
-                gravity_tick -= 10000;
+                    hold = tetrimino;
+                    set_tetrimino(temp);
+                } else {
+                    hold = tetrimino;
+                    set_tetrimino_next();
+                }
+
+                holdable = false;
+            }
+
+            // Gravity
+            gravity_tick += gravity;
+
+            while (gravity_tick >= 10000) {
+                if (test_tetrimino(0, -1)) {
+                    --tetrimino_y;
+                    gravity_tick -= 10000;
+                } else {
+                    gravity_tick = 0;
+                }
+            }
+
+            // Lock
+            u16 drop_offset = drop_offset_tetrimino();
+
+            if (drop_offset == 0) {
+                if (lock_resetable_y > tetrimino_y) {
+                    lock_resetable_y = tetrimino_y;
+                    lock_resetable_frame = LOCK_RESETABLE_FRAME(lock_frame_max);
+                }
+
+                --lock_resetable_frame;
+                --lock_frame;
+
+                if (lock_frame <= 0 || lock_resetable_frame <= 0)
+                    place_tetrimino();
             } else {
-                gravity_tick = 0;
-            }
-        }
-
-        // Lock
-        u16 drop_offset = drop_offset_tetrimino();
-
-        if (drop_offset == 0) {
-            if (lock_resetable_y > tetrimino_y) {
-                lock_resetable_y = tetrimino_y;
-                lock_resetable_frame = LOCK_RESETABLE_FRAME(lock_frame_max);
+                --lock_resetable_frame;
             }
 
-            --lock_resetable_frame;
-            --lock_frame;
+            // Current block
+            if (tetrimino >= 0) {
+                for (s16 j = 0; j < 4; ++j) {
+                    for (s16 i = 0; i < 4; ++i) {
+                        u8 current = tetrimino_shape[tetrimino][tetrimino_rotation][((3 - j) * 4) + i];
 
-            if (lock_frame <= 0 || lock_resetable_frame <= 0)
-                place_tetrimino();
-        } else {
-            --lock_resetable_frame;
-        }
+                        if (current != 0) {                
+                            s16 x = BOARD_DRAW_X + (tetrimino_x + i) * 7;
+                            s16 y = BOARD_DRAW_Y - (tetrimino_y + j + 1) * 7;
+                            s16 character = (BLOCKS_OFFSET + current - 1) * 2;
 
-        // Current block
-        if (tetrimino >= 0) {
-            for (s16 j = 0; j < 4; ++j) {
-                for (s16 i = 0; i < 4; ++i) {
-                    u8 current = tetrimino_shape[tetrimino][tetrimino_rotation][((3 - j) * 4) + i];
+                            // Normal
+                            object_fetch(x, y, character, OBJ_256_COLOR | OBJ_SQUARE, OBJ_SIZE(0), 0);
 
-                    if (current != 0) {                
-                        s16 x = BOARD_DRAW_X + (tetrimino_x + i) * 7;
-                        s16 y = BOARD_DRAW_Y - (tetrimino_y + j + 1) * 7;
-                        s16 character = (TILE_POSITION_BLOCKS + current - 1) * 2;
-
-                        // Normal
-                        object_fetch(x, y, character, OBJ_256_COLOR | OBJ_SQUARE, OBJ_SIZE(0), 0);
-
-                        // Ghost
-                        if (drop_offset != 0 && tetrimino_y + j - drop_offset < BOARD_VISIBLE_HEIGHT)
-                            object_fetch(x, y + drop_offset * 7, character, OBJ_256_COLOR | OBJ_SQUARE | OBJ_TRANSLUCENT, OBJ_SIZE(0), 0);
+                            // Ghost
+                            if (drop_offset != 0 && tetrimino_y + j - drop_offset < BOARD_VISIBLE_HEIGHT)
+                                object_fetch(x, y + drop_offset * 7, character, OBJ_256_COLOR | OBJ_SQUARE | OBJ_TRANSLUCENT, OBJ_SIZE(0), 0);
+                        }
                     }
                 }
             }
-        }
-    } else {
-        if ((input_is_up(KEY_LEFT) && arr_direction == -1) || (input_is_up(KEY_RIGHT) && arr_direction == 1))
-            arr_direction = 0;
+            break;
+
+        case STATE_END:
+            break;
     }
 
     // Next
     for (s16 i = 0; i < 5; ++i) {
-        s16 next = (TILE_POSITION_NEXT + next_blocks[(next_index + i) & 0x0F] * 8) * 2;
+        s16 next = (NEXT_PIECES_OFFSET + next_blocks[(next_index + i) & 0x0F] * 8) * 2;
 
         object_fetch(165, 21 + i * 22, next, OBJ_256_COLOR | OBJ_WIDE, OBJ_SIZE(2), 0);
     }
 
     // Hold
     if (hold >= 0)
-        object_fetch(51, 21, (TILE_POSITION_NEXT + hold * 8) * 2, OBJ_256_COLOR | OBJ_WIDE | (holdable ? 0 : OBJ_TRANSLUCENT), OBJ_SIZE(2), 0);
+        object_fetch(51, 21, (NEXT_PIECES_OFFSET + hold * 8) * 2, OBJ_256_COLOR | OBJ_WIDE | (holdable ? 0 : OBJ_TRANSLUCENT), OBJ_SIZE(2), 0);
 
     // Clear state
     if (clear_remain_frame > 0) {
@@ -300,7 +324,7 @@ static void IWRAM_CODE update() {
         s16 offset_x = (offset_x_delta * offset_x_delta * offset_x_delta * offset_x_delta) / 32000; // Ease out quartic?
         s16 y = 149;
 
-        palette_copy(PALETTE_OBJ(7), TEXTS_CLEAR_PALETTE, 16, inverse_lerp(clear_current_frame, 18, 0));
+        palette_copy(PALETTE_OBJ(7), TEXTS_PALETTE, 16, inverse_lerp(clear_current_frame, 18, 0));
 
         if (clear_combo >= 2) {
             object_fetch(46 - offset_x, y, TEXTS_CLEAR_OFFSET + 32, OBJ_16_COLOR | OBJ_WIDE, OBJ_SIZE(1), OBJ_PALETTE(7));
@@ -708,8 +732,14 @@ static bool IWRAM_CODE test_block(s16 x, s16 y) {
 }
 
 static void IWRAM_CODE game_over() {
-    tetrimino = -1;
-    scene_set(scene_title);
+    for (s16 j = 0; j < BOARD_HEIGHT; ++j) {
+        for (s16 i = 0; i < BOARD_WIDTH; ++i) {
+            if (board[j][i] != 0)
+                set_block(i, j, 9);
+        }
+    }
+
+    state = STATE_END;
 }
 
 static void IWRAM_CODE write_u32_by_object(u16 x, u16 y, u16 palette, u32 value) {
