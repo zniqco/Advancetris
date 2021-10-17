@@ -17,7 +17,11 @@ IWRAM_CODE static void write_u32_by_object(u16 x, u16 y, u16 palette, u32 value)
 IWRAM_CODE int main() {
     // IRQ
     irqInit();
+    irqSet(IRQ_VBLANK, mmVBlank);
     irqEnable(IRQ_VBLANK);
+
+    // Audios
+    mmInitDefault((mm_addr)audios_bin, 8);
 
     // Registers
     REG_IME = 1;
@@ -50,6 +54,7 @@ IWRAM_CODE int main() {
 
     while (true) {
         VBlankIntrWait();
+        mmFrame();
 
         // Debug
         profile_start();

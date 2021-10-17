@@ -11,6 +11,7 @@ BUILD := build
 SOURCES := source
 INCLUDES := include
 DATA := data
+AUDIOS := audios
 
 # options for code generation
 ARCH := -mthumb -mthumb-interwork
@@ -21,13 +22,13 @@ else
 	CFLAGS := -g -Wall -O3 -mcpu=arm7tdmi -mtune=arm7tdmi -fomit-frame-pointer -ffast-math $(ARCH)
 endif
 
-CFLAGS	+= $(INCLUDE)
+CFLAGS += $(INCLUDE)
 
 CXXFLAGS := $(CFLAGS) -fno-rtti -fno-exceptions
 
 ASFLAGS := -g $(ARCH)
-LDFLAGS	= -g $(ARCH) -Wl,-Map,$(notdir $*.map)
-LIBS := -lgba
+LDFLAGS = -g $(ARCH) -Wl,-Map,$(notdir $*.map)
+LIBS := -lgba -lmm
 LIBDIRS := $(LIBGBA)
 
 ifneq ($(BUILDDIR), $(CURDIR))
@@ -43,6 +44,11 @@ CFILES := $(foreach dir,$(SOURCES),$(patsubst $(dir)/%,%,$(wildcard $(dir)/*.c) 
 CPPFILES := $(foreach dir,$(SOURCES),$(patsubst $(dir)/%,%,$(wildcard $(dir)/*.cpp) $(wildcard $(dir)/**/*.cpp)))
 PNGFILES := $(foreach dir,$(SOURCES),$(patsubst $(dir)/%,%,$(wildcard $(dir)/*.png) $(wildcard $(dir)/**/*.png)))
 BINFILES := $(foreach dir,$(DATA),$(patsubst $(dir)/%,%,$(wildcard $(dir)/*.*) $(wildcard $(dir)/**/*.*)))
+
+ifneq ($(strip $(AUDIOS)),)
+	export AUDIOFILES := $(foreach dir,$(AUDIOS),$(wildcard $(CURDIR)/$(dir)/*.wav))
+	BINFILES += audios.bin
+endif
 
 # use CXX for linking C++ projects, CC for standard C
 ifeq ($(strip $(CPPFILES)),)
@@ -100,6 +106,14 @@ $(OFILES_SOURCES): $(HFILES)
 		-e 's/($(notdir $*))Pal/\U\1_PALETTE/g' \
 		$$i; \
 	done
+
+# audio bank
+audios.bin audios.h : $(AUDIOFILES)
+	@mmutil $^ -oaudios.bin -haudios.h
+
+# bin2o
+%.bin.o %_bin.h : %.bin
+	@$(bin2o)
 
 -include $(DEPSDIR)/*.d
 

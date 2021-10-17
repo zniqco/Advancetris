@@ -192,6 +192,8 @@ static void IWRAM_CODE update() {
                 if (test_tetrimino(pressed, 0)) {
                     tetrimino_x += pressed;
                     lock_frame = lock_frame_max;
+
+                    mmEffect(SFX_MOVE);
                 }
                     
                 if (arr_direction != pressed) {
@@ -205,12 +207,18 @@ static void IWRAM_CODE update() {
 
             if (arr_direction != 0) {
                 if (--arr_delay <= 0) {
+                    bool is_moved = false;
+
                     if (test_tetrimino(arr_direction, 0)) {
                         tetrimino_x += arr_direction;
                         lock_frame = lock_frame_max;
+                        is_moved = true;
                     }
                     
                     arr_delay = ARR;
+
+                    if (is_moved)
+                        mmEffect(SFX_MOVE);
                 }
             }
 
@@ -222,6 +230,8 @@ static void IWRAM_CODE update() {
                         ++score;
 
                         softdrop_delay = 1;
+
+                        mmEffect(SFX_SOFTDROP);
                     }
                 }
             } else {
@@ -247,6 +257,8 @@ static void IWRAM_CODE update() {
                 }
 
                 holdable = false;
+
+                mmEffect(SFX_HOLD);
             }
 
             // Gravity
@@ -540,6 +552,8 @@ static void IWRAM_CODE place_tetrimino() {
 
     // Combo and B2B
     if (cleared > 0) {
+        mmEffect(SFX_CLEAR);
+
         ++combo;
 
         if (b2b_able)
@@ -550,6 +564,8 @@ static void IWRAM_CODE place_tetrimino() {
         if (b2b > 1)
             points = points * 3 / 2;
     } else {
+        mmEffect(SFX_PLACE);
+
         combo = 0;
     }
 
@@ -680,6 +696,8 @@ static void IWRAM_CODE rotate_tetrimino(bool is_clockwise) {
     } else {
         lock_frame = lock_frame_max;
 
+        mmEffect(SFX_ROTATE);
+
         // T-spin
         if (tetrimino == 6) {
             u8 corners[4] = {
@@ -699,7 +717,7 @@ static void IWRAM_CODE rotate_tetrimino(bool is_clockwise) {
                     tspin_state = TSPIN_MINI;
             } else {
                 tspin_state = TSPIN_NONE;
-            }            
+            }
         }
     }
 }

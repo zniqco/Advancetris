@@ -5,6 +5,9 @@
 #include <stdarg.h>
 #include <string.h>
 #include <gba.h>
+#include <maxmod.h>
+#include "audios.h"
+#include "audios_bin.h"
 
 #define PALETTE_BG(m) (BG_COLORS + ((m) << 4))
 #define PALETTE_OBJ(m) (OBJ_COLORS + ((m) << 4))
