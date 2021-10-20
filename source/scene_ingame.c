@@ -231,7 +231,7 @@ static void IWRAM_CODE update() {
 
                         softdrop_delay = 1;
 
-                        mmEffect(SFX_SOFTDROP);
+                        mmEffect(SFX_SOFT_DROP);
                     }
                 }
             } else {
@@ -552,7 +552,13 @@ static void IWRAM_CODE place_tetrimino() {
 
     // Combo and B2B
     if (cleared > 0) {
-        mmEffect(SFX_CLEAR);
+        if (cleared >= 4)
+            mmEffect(SFX_CLEAR_TETRIS);
+        else
+            mmEffect(SFX_CLEAR);
+
+        if (all_clear)
+            mmEffect(SFX_ALL_CLEAR);
 
         ++combo;
 
