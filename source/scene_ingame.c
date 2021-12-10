@@ -191,6 +191,7 @@ static void IWRAM_CODE update() {
             if (pressed != 0) {
                 if (test_tetrimino(pressed, 0)) {
                     tetrimino_x += pressed;
+                    tspin_state = TSPIN_NONE;
                     lock_frame = lock_frame_max;
 
                     mmEffect(SFX_MOVE);
@@ -211,6 +212,7 @@ static void IWRAM_CODE update() {
 
                     if (test_tetrimino(arr_direction, 0)) {
                         tetrimino_x += arr_direction;
+                        tspin_state = TSPIN_NONE;
                         lock_frame = lock_frame_max;
                         is_moved = true;
                     }
@@ -227,6 +229,8 @@ static void IWRAM_CODE update() {
                 if (--softdrop_delay <= 0) {
                     if (test_tetrimino(0, -1)) {
                         --tetrimino_y;
+                        tspin_state = TSPIN_NONE;
+
                         ++score;
 
                         softdrop_delay = 1;
@@ -267,6 +271,7 @@ static void IWRAM_CODE update() {
             while (gravity_tick >= 10000) {
                 if (test_tetrimino(0, -1)) {
                     --tetrimino_y;
+                    tspin_state = TSPIN_NONE;
                     gravity_tick -= 10000;
                 } else {
                     gravity_tick = 0;
