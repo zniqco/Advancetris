@@ -36,7 +36,7 @@ static void IWRAM_CODE update() {
 }
 
 const scene_t scene_title = {
-	.init = init,
+    .init = init,
     .cleanup = nothing,
-	.update = update,
+    .update = update,
 };

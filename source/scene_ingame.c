@@ -763,6 +763,8 @@ static void IWRAM_CODE game_over() {
         }
     }
 
+    mmEffect(SFX_TOP_OUT);
+
     state = STATE_END;
 }
 
@@ -781,7 +783,7 @@ static void IWRAM_CODE write_u32_by_object(u16 x, u16 y, u16 palette, u32 value)
 }
 
 const scene_t scene_ingame = {
-	.init = init,
+    .init = init,
     .cleanup = cleanup,
-	.update = update,
+    .update = update,
 };

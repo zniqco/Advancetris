@@ -115,7 +115,7 @@ static void IWRAM_CODE menu_end() {
 }
 
 const scene_t scene_menu = {
-	.init = init,
+    .init = init,
     .cleanup = nothing,
-	.update = update,
+    .update = update,
 };
