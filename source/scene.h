@@ -3,9 +3,9 @@
 #include "system.h"
 
 typedef struct {
-	void (*init)();
-	void (*cleanup)();
-	void (*update)();
+    void (*init)();
+    void (*cleanup)();
+    void (*update)();
 } scene_t;
 
 void scene_set(scene_t scene);

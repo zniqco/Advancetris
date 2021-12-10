@@ -1,15 +1,15 @@
 #include "scene.h"
 
 static scene_t current = {
-	.init = nothing,
-	.cleanup = nothing,
-	.update = nothing,
+    .init = nothing,
+    .cleanup = nothing,
+    .update = nothing,
 };
 
 static scene_t next = {
-	.init = nothing,
-	.cleanup = nothing,
-	.update = nothing,
+    .init = nothing,
+    .cleanup = nothing,
+    .update = nothing,
 };
 
 static bool is_changed = false;
