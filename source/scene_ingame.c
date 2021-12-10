@@ -77,6 +77,8 @@ static void set_tetrimino_next();
 static bool test_tetrimino(s8 offset_x, s8 offset_y);
 static void place_tetrimino();
 static void rotate_tetrimino(bool is_ccw);
+static void rotate_180_tetrimino();
+static void tspin_update();
 static u16 drop_offset_tetrimino();
 static void set_block(s16 x, s16 y, u8 index);
 static bool test_block(s16 x, s16 y);
@@ -248,6 +250,9 @@ static void IWRAM_CODE update() {
 
             if (input_is_down(KEY_B))
                 rotate_tetrimino(false);
+
+            if (input_is_down(KEY_R))
+                rotate_180_tetrimino();
             
             if (holdable && input_is_down(KEY_L)) {
                 if (hold >= 0) {
@@ -708,27 +713,49 @@ static void IWRAM_CODE rotate_tetrimino(bool is_clockwise) {
         lock_frame = lock_frame_max;
 
         mmEffect(SFX_ROTATE);
+        tspin_update();
+    }
+}
 
-        // T-spin
-        if (tetrimino == 6) {
-            u8 corners[4] = {
-                test_block(tetrimino_x, tetrimino_y + 3) ? 0 : 1, // LU
-                test_block(tetrimino_x + 2, tetrimino_y + 3) ? 0 : 1, // RU
-                test_block(tetrimino_x + 2, tetrimino_y + 1) ? 0 : 1, // RD
-                test_block(tetrimino_x, tetrimino_y + 1) ? 0 : 1, // LD
-            };
+static void IWRAM_CODE rotate_180_tetrimino() {
+    u8 previous_rotation = tetrimino_rotation;
 
-            if (corners[0] + corners[1] + corners[2] + corners[3] >= 3) {
-                s16 front0 = (0 + tetrimino_rotation) & 0x03;
-                s16 front1 = (1 + tetrimino_rotation) & 0x03;
+    tetrimino_rotation = (tetrimino_rotation + 2) & 0x03;
 
-                if (corners[front0] && corners[front1])
-                    tspin_state = TSPIN_NORMAL;
-                else
-                    tspin_state = TSPIN_MINI;
-            } else {
-                tspin_state = TSPIN_NONE;
-            }
+    bool success = false;
+
+    if (test_tetrimino(0, 0))
+        success = true;
+
+    if (!success) {
+        tetrimino_rotation = previous_rotation;
+    } else {
+        lock_frame = lock_frame_max;
+
+        mmEffect(SFX_ROTATE);
+        tspin_update();
+    }
+}
+
+static void IWRAM_CODE tspin_update() {
+    if (tetrimino == 6) {
+        u8 corners[4] = {
+            test_block(tetrimino_x, tetrimino_y + 3) ? 0 : 1, // LU
+            test_block(tetrimino_x + 2, tetrimino_y + 3) ? 0 : 1, // RU
+            test_block(tetrimino_x + 2, tetrimino_y + 1) ? 0 : 1, // RD
+            test_block(tetrimino_x, tetrimino_y + 1) ? 0 : 1, // LD
+        };
+
+        if (corners[0] + corners[1] + corners[2] + corners[3] >= 3) {
+            s16 front0 = (0 + tetrimino_rotation) & 0x03;
+            s16 front1 = (1 + tetrimino_rotation) & 0x03;
+
+            if (corners[front0] && corners[front1])
+                tspin_state = TSPIN_NORMAL;
+            else
+                tspin_state = TSPIN_MINI;
+        } else {
+            tspin_state = TSPIN_NONE;
         }
     }
 }
