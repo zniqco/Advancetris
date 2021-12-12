@@ -12,9 +12,9 @@
 #define SDF 40
 #define LOCK_RESETABLE_FRAME(f) ((f) * 2 + 12) // LOCK_FRAME * 2 + 12
 
-#define BLOCKS_OFFSET 32
-#define NEXT_PIECES_OFFSET (BLOCKS_OFFSET + 10)
-#define TEXTS_OFFSET 200
+#define BLOCKS_OBJECT_OFFSET 64
+#define NEXT_PIECES_OFFSET (BLOCKS_OBJECT_OFFSET + 2)
+#define TEXTS_OFFSET 178
 #define TEXTS_CLEAR_OFFSET (TEXTS_OFFSET + 4)
 #define CLEAR_DISPLAY_FRAME 75
 
@@ -111,14 +111,14 @@ static void IWRAM_CODE init() {
     map_clear(5);
     put_sprite_batch(MAP_POSITION_W32(5, 6, 2), 13, BOARD_MAP, 64, 18, 19);
 
-    // Block and next
-    memory_copy32(PATRAM8(4, BLOCKS_OFFSET), BLOCKS_TILES, BLOCKS_TILES_LENGTH);
-    memory_copy32(PATRAM8(4, NEXT_PIECES_OFFSET), NEXT_PIECES_TILES, NEXT_PIECES_TILES_LENGTH);
-    memory_copy32(PALETTE_OBJ(8), BLOCKS_PALETTE, BLOCKS_PALETTE_LENGTH);
+    // Block (Object) and Next
+    memory_copy32(PATRAM4(4, BLOCKS_OBJECT_OFFSET), BLOCKS_OBJECT_TILES, BLOCKS_OBJECT_TILES_LENGTH);
+    memory_copy32(PATRAM4(4, NEXT_PIECES_OFFSET), NEXT_PIECES_TILES, NEXT_PIECES_TILES_LENGTH);
+    memory_copy32(PALETTE_OBJ(8), BLOCKS_TILE_PALETTE, BLOCKS_TILE_PALETTE_LENGTH);
 
-    // 8px Block (for Hack)
-    memory_copy32(PATRAM8(0, 1), BLOCKS8_TILES, BLOCKS8_TILES_LENGTH);
-    memory_copy32(PALETTE_BG(8), BLOCKS_PALETTE, BLOCKS_PALETTE_LENGTH);
+    // Block (Tile)
+    memory_copy32(PATRAM4(0, 2), BLOCKS_TILE_TILES, BLOCKS_TILE_TILES_LENGTH);
+    memory_copy32(PALETTE_BG(8), BLOCKS_TILE_PALETTE, BLOCKS_TILE_PALETTE_LENGTH);
 
     // Clear texts
     memory_copy32(PATRAM4(4, TEXTS_OFFSET), TEXTS_TILES, TEXTS_TILES_LENGTH);
@@ -303,6 +303,15 @@ static void IWRAM_CODE update() {
 
             // Current block
             if (tetrimino >= 0) {
+                s16 brightness = 0;
+
+                if (drop_offset == 0) {
+                    if (lock_frame > lock_frame_max - 20)
+                        brightness += lock_frame - (lock_frame_max - 20);
+                }
+
+                palette_copy(PALETTE_OBJ(7) + 8, BLOCKS_TILE_PALETTE + tetrimino * 8, 8, brightness);
+
                 for (s16 j = 0; j < 4; ++j) {
                     for (s16 i = 0; i < 4; ++i) {
                         u8 current = tetrimino_shape[tetrimino][tetrimino_rotation][((3 - j) * 4) + i];
@@ -310,18 +319,18 @@ static void IWRAM_CODE update() {
                         if (current != 0) {                
                             s16 x = BOARD_DRAW_X + (tetrimino_x + i) * 7;
                             s16 y = BOARD_DRAW_Y - (tetrimino_y + j + 1) * 7;
-                            s16 character = (BLOCKS_OFFSET + current - 1) * 2;
 
                             // Normal
-                            object_fetch(x, y, character, OBJ_256_COLOR | OBJ_SQUARE, OBJ_SIZE(0), 0);
+                            object_fetch(x, y, BLOCKS_OBJECT_OFFSET, OBJ_16_COLOR | OBJ_SQUARE, OBJ_SIZE(0), OBJ_PALETTE(7));
 
                             // Ghost
                             if (drop_offset != 0 && tetrimino_y + j - drop_offset < BOARD_VISIBLE_HEIGHT)
-                                object_fetch(x, y + drop_offset * 7, character, OBJ_256_COLOR | OBJ_SQUARE | OBJ_TRANSLUCENT, OBJ_SIZE(0), 0);
+                                object_fetch(x, y + drop_offset * 7, BLOCKS_OBJECT_OFFSET, OBJ_16_COLOR | OBJ_SQUARE | OBJ_TRANSLUCENT, OBJ_SIZE(0), OBJ_PALETTE(7));
                         }
                     }
                 }
             }
+
             break;
 
         case STATE_END:
@@ -330,14 +339,14 @@ static void IWRAM_CODE update() {
 
     // Next
     for (s16 i = 0; i < 5; ++i) {
-        s16 next = (NEXT_PIECES_OFFSET + next_blocks[(next_index + i) & 0x0F] * 8) * 2;
+        s16 next = (NEXT_PIECES_OFFSET / 2 + next_blocks[(next_index + i) & 0x0F] * 8) * 2;
 
         object_fetch(165, 21 + i * 22, next, OBJ_256_COLOR | OBJ_WIDE, OBJ_SIZE(2), 0);
     }
 
     // Hold
     if (hold >= 0)
-        object_fetch(51, 21, (NEXT_PIECES_OFFSET + hold * 8) * 2, OBJ_256_COLOR | OBJ_WIDE | (holdable ? 0 : OBJ_TRANSLUCENT), OBJ_SIZE(2), 0);
+        object_fetch(51, 21, (NEXT_PIECES_OFFSET / 2 + hold * 8) * 2, OBJ_256_COLOR | OBJ_WIDE | (holdable ? 0 : OBJ_TRANSLUCENT), OBJ_SIZE(2), 0);
 
     // Clear state
     if (clear_remain_frame > 0) {
@@ -346,7 +355,7 @@ static void IWRAM_CODE update() {
         s16 offset_x = (offset_x_delta * offset_x_delta * offset_x_delta * offset_x_delta) / 32000; // Ease out quartic?
         s16 y = 149;
 
-        palette_copy(PALETTE_OBJ(7), TEXTS_PALETTE, 16, inverse_lerp(clear_current_frame, 18, 0));
+        palette_copy(PALETTE_OBJ(7), TEXTS_PALETTE, 8, inverse_lerp(clear_current_frame, 18, 0));
 
         if (clear_combo >= 2) {
             object_fetch(46 - offset_x, y, TEXTS_CLEAR_OFFSET + 32, OBJ_16_COLOR | OBJ_WIDE, OBJ_SIZE(1), OBJ_PALETTE(7));
