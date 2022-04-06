@@ -72,8 +72,8 @@ IWRAM_CODE int main() {
         if (profile_max < profile_result)
             profile_max = profile_result;
 
-        write_u32_by_object(232, 144, 14, profile_result);
-        write_u32_by_object(232, 152, 14, profile_max);
+        write_u32_by_object(232, 144, 15, profile_result);
+        write_u32_by_object(232, 152, 15, profile_max);
         // -- Debug
     }
 }
