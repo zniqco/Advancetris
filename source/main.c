@@ -39,11 +39,11 @@ IWRAM_CODE int main() {
 
     // System font (BG)
     memory_copy32(PATRAM4(1, 0), FONT_TILES, FONT_TILES_LENGTH);
-    memory_copy32(PALETTE_BG(14), FONT_PALETTE, FONT_PALETTE_LENGTH);
+    palette_copy(PALETTE_BG(14), FONT_PALETTE, 32, 0);
 
     // System font (OBJ)
     memory_copy32(PATRAM4(4, 0), FONT_TILES, FONT_TILES_LENGTH);
-    memory_copy32(PALETTE_OBJ(14), FONT_PALETTE, FONT_PALETTE_LENGTH);
+    palette_copy(PALETTE_OBJ(14), FONT_PALETTE, 32, 0);
 
     // Init
     background_init();
