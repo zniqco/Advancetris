@@ -1,6 +1,14 @@
 #include "scene_title.h"
 
+static u16 press_frame = 0;
+
 static void IWRAM_CODE init() {
+    // Base layer
+    palette_copy(PALETTE_BG(13), FONT_PALETTE + 48, 16, 0);
+
+    put_text(MAP_POSITION_W32(5, 9, 18), 14, "2022 ZNIQ.CO");
+
+    // Load title
     memory_copy32(PATRAM4(4, 64), TITLE_LEFT_TILES, TITLE_LEFT_TILES_LENGTH);
     memory_copy32(PALETTE_OBJ(0), TITLE_LEFT_PALETTE, TITLE_LEFT_PALETTE_LENGTH);
 
@@ -13,7 +21,7 @@ static void IWRAM_CODE init() {
 
 static void IWRAM_CODE update() {
     s16 x = 120;
-    s16 y = 80;
+    s16 y = 76;
 
     for (s16 i = 0; i < 6; ++i)
         object_fetch(x - 72 + i * 16, y - 16, 64 + i * 8, OBJ_16_COLOR | OBJ_TALL, OBJ_SIZE(2), OBJ_PALETTE(0));
@@ -31,8 +39,16 @@ static void IWRAM_CODE update() {
     object_fetch(x + 17, y - 31, 168, OBJ_16_COLOR | OBJ_SQUARE, OBJ_SIZE(2), OBJ_PALETTE(3));
     object_fetch(x - 15, y + 1, 184, OBJ_16_COLOR | OBJ_SQUARE, OBJ_SIZE(2), OBJ_PALETTE(3));
 
-    if (input_is_down(KEY_A))
-        scene_set(scene_ingame);
+    if (press_frame == 0)
+        put_text(MAP_POSITION_W32(5, 7, 15), 13, "PRESS ANY BUTTON");
+    else if (press_frame == 20)
+        put_text(MAP_POSITION_W32(5, 7, 15), 13, "                ");
+
+    if (++press_frame >= 40)
+        press_frame -= 40;
+
+    if (input_is_down(KEY_A) || input_is_down(KEY_B) || input_is_down(KEY_START))
+        scene_set(scene_menu);
 }
 
 const scene_t scene_title = {
