@@ -15,6 +15,9 @@ static void write_u32_by_object(u16 x, u16 y, u16 palette, u32 value) {
 }
 
 int main() {
+    // Clear VRAM
+    memory_fill32((u32 *)VRAM, 0, 0x18000);
+
     // IRQ
     irqInit();
     irqSet(IRQ_VBLANK, mmVBlank);
