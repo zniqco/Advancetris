@@ -18,7 +18,7 @@ static void menu_sub_begin();
 static void menu_sub_end();
 static void menu_end();
 
-static void IWRAM_CODE init() {
+static void init() {
     current_index = 0;
     current_selections = 0;
     current_level = 0;
@@ -26,7 +26,7 @@ static void IWRAM_CODE init() {
     map_clear(5);
 }
 
-static void IWRAM_CODE update() {
+static void update() {
     menu_begin();
 
     if (menu_item("START")) {
@@ -50,7 +50,7 @@ static void IWRAM_CODE update() {
     menu_end();
 }
 
-static void IWRAM_CODE menu_begin() {
+static void menu_begin() {
     x = 0;
     y = 0;
     drawing_index = 0;
@@ -59,7 +59,7 @@ static void IWRAM_CODE menu_begin() {
     drawing_count = 0;
 }
 
-static bool IWRAM_CODE menu_item(const char *caption) {
+static bool menu_item(const char *caption) {
     u16 index = drawing_index++;
 
     if (current_level == drawing_level) {
@@ -74,21 +74,21 @@ static bool IWRAM_CODE menu_item(const char *caption) {
     return false;
 }
 
-static void IWRAM_CODE menu_sub_begin() {
+static void menu_sub_begin() {
     drawing_selections = (drawing_selections << 4) | (drawing_index - 1);
     drawing_index = 0;
 
     ++drawing_level;
 }
 
-static void IWRAM_CODE menu_sub_end() {
+static void menu_sub_end() {
     drawing_index = (drawing_selections & 0x0F) + 1;
     drawing_selections = drawing_selections >> 4;
 
     --drawing_level;
 }
 
-static void IWRAM_CODE menu_end() {
+static void menu_end() {
     BG_OFFSET[1].y = y * 4;
 
     if (input_is_down(KEY_A)) {

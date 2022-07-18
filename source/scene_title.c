@@ -2,7 +2,7 @@
 
 static u16 press_frame = 0;
 
-static void IWRAM_CODE init() {
+static void init() {
     // Base layer
     palette_copy(PALETTE_BG(13), FONT_PALETTE + 48, 16, 0);
 
@@ -19,7 +19,7 @@ static void IWRAM_CODE init() {
     memory_copy32(PALETTE_OBJ(2), TITLE_BACKGROUND_PALETTE, TITLE_BACKGROUND_PALETTE_LENGTH);
 }
 
-static void IWRAM_CODE update() {
+static void update() {
     s16 x = 120;
     s16 y = 76;
 
@@ -48,7 +48,7 @@ static void IWRAM_CODE update() {
         press_frame -= 40;
 
     if (input_is_down(KEY_A) || input_is_down(KEY_B) || input_is_down(KEY_START))
-        scene_set(scene_menu);
+        scene_set(scene_ingame);
 }
 
 const scene_t scene_title = {

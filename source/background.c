@@ -22,7 +22,7 @@ static s16 loading_progress;
 static void set_current(const background_data *data);
 static void set_brightness(s16 brightness);
 
-void IWRAM_CODE background_init() {
+void background_init() {
     current = NULL;
     next = NULL;
     brightness = 0;
@@ -41,7 +41,7 @@ void IWRAM_CODE background_init() {
     background_set(&backgrounds[0]);
 }
 
-void IWRAM_CODE background_set(const background_data *data) {
+void background_set(const background_data *data) {
     if (current != data) {
         if (current != NULL)
             next = data;
@@ -50,7 +50,7 @@ void IWRAM_CODE background_set(const background_data *data) {
     }
 }
 
-void IWRAM_CODE background_update() {
+void background_update() {
     if (current != NULL) {
         if (next != NULL) {
             brightness -= 8;
@@ -79,14 +79,14 @@ void IWRAM_CODE background_update() {
     }
 }
 
-static void IWRAM_CODE set_current(const background_data *data) {
+static void set_current(const background_data *data) {
     current = data;
     loading_progress = 0;
 
     set_brightness(brightness_latest);
 }
 
-static void IWRAM_CODE set_brightness(s16 brightness) {
+static void set_brightness(s16 brightness) {
     brightness = clamp(brightness, 0, 100);
 
     if (brightness_latest != brightness) {

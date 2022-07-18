@@ -85,7 +85,7 @@ static bool test_block(s16 x, s16 y);
 static void write_u32_by_object(u16 x, u16 y, u16 palette, u32 value);
 static void game_over();
 
-static void IWRAM_CODE init() {
+static void init() {
     REG_DISPCNT = MODE_1 | OBJ_ON | BG0_ON | BG1_ON | BG2_ON | OBJ_1D_MAP;
 
     // HACK: Align 8x8 to 7x7 for blocks
@@ -156,12 +156,12 @@ static void IWRAM_CODE init() {
     set_tetrimino_next();
 }
 
-static void IWRAM_CODE cleanup() {
+static void cleanup() {
     map_clear(5);
     map_clear(6);
 }
 
-static void IWRAM_CODE update() {
+static void update() {
     switch (state) {
         case STATE_READY:
             object_fetch(105, 77, TEXTS_OFFSET, OBJ_16_COLOR | OBJ_WIDE, OBJ_SIZE(1), OBJ_PALETTE(7));
@@ -412,7 +412,7 @@ static void IWRAM_CODE update() {
     write_u32_by_object(70, 63 + 48, 14, level);
 }
 
-static void IWRAM_CODE set_level(u16 value) {
+static void set_level(u16 value) {
     level = value;
 
     gravity = marathon_level_gravity[value - 1];
@@ -421,7 +421,7 @@ static void IWRAM_CODE set_level(u16 value) {
     background_set(marathon_level_background[value - 1]);
 }
 
-static void IWRAM_CODE set_tetrimino(s8 index) {
+static void set_tetrimino(s8 index) {
     tetrimino = index;
     tetrimino_rotation = 0;
     tetrimino_x = 3;
@@ -434,7 +434,7 @@ static void IWRAM_CODE set_tetrimino(s8 index) {
     lock_resetable_frame = 0;
 }
 
-static void IWRAM_CODE set_tetrimino_next() {
+static void set_tetrimino_next() {
     while (next_count <= 5) {
         s8 blocks[7];
 
@@ -459,7 +459,7 @@ static void IWRAM_CODE set_tetrimino_next() {
     --next_count;
 }
 
-static bool IWRAM_CODE test_tetrimino(s8 offset_x, s8 offset_y) {
+static bool test_tetrimino(s8 offset_x, s8 offset_y) {
     for (s16 j = 0; j < 4; ++j) {
         for (s16 i = 0; i < 4; ++i) {
             u8 current = tetrimino_shape[tetrimino][tetrimino_rotation][((3 - j) * 4) + i];
@@ -477,7 +477,7 @@ static bool IWRAM_CODE test_tetrimino(s8 offset_x, s8 offset_y) {
     return true;
 }
 
-static void IWRAM_CODE place_tetrimino() {
+static void place_tetrimino() {
     // Set blocks
     u16 highest_y = 0;
 
@@ -647,7 +647,7 @@ static void IWRAM_CODE place_tetrimino() {
     }
 }
 
-static u16 IWRAM_CODE drop_offset_tetrimino() {
+static u16 drop_offset_tetrimino() {
     u16 min_offset = BOARD_HEIGHT;
 
     for (s16 i = 0; i < 4; ++i) {
@@ -680,7 +680,7 @@ static u16 IWRAM_CODE drop_offset_tetrimino() {
     return min_offset;
 }
 
-static void IWRAM_CODE rotate_tetrimino(bool is_clockwise) {
+static void rotate_tetrimino(bool is_clockwise) {
     u8 previous_rotation = tetrimino_rotation;
     s16 kick_base_index;
 
@@ -726,7 +726,7 @@ static void IWRAM_CODE rotate_tetrimino(bool is_clockwise) {
     }
 }
 
-static void IWRAM_CODE rotate_180_tetrimino() {
+static void rotate_180_tetrimino() {
     u8 previous_rotation = tetrimino_rotation;
 
     tetrimino_rotation = (tetrimino_rotation + 2) & 0x03;
@@ -746,7 +746,7 @@ static void IWRAM_CODE rotate_180_tetrimino() {
     }
 }
 
-static void IWRAM_CODE tspin_update() {
+static void tspin_update() {
     if (tetrimino == 6) {
         u8 corners[4] = {
             test_block(tetrimino_x, tetrimino_y + 3) ? 0 : 1, // LU
@@ -769,7 +769,7 @@ static void IWRAM_CODE tspin_update() {
     }
 }
 
-static void IWRAM_CODE set_block(s16 x, s16 y, u8 index) {
+static void set_block(s16 x, s16 y, u8 index) {
     if (board[y][x] != index) {
         board[y][x] = index;
 
@@ -786,7 +786,7 @@ static void IWRAM_CODE set_block(s16 x, s16 y, u8 index) {
     }
 }
 
-static bool IWRAM_CODE test_block(s16 x, s16 y) {
+static bool test_block(s16 x, s16 y) {
     if (x < 0 || x >= BOARD_WIDTH || y < 0)
         return false;
 
@@ -796,7 +796,7 @@ static bool IWRAM_CODE test_block(s16 x, s16 y) {
     return true;
 }
 
-static void IWRAM_CODE game_over() {
+static void game_over() {
     for (s16 j = 0; j < BOARD_HEIGHT; ++j) {
         for (s16 i = 0; i < BOARD_WIDTH; ++i) {
             if (board[j][i] != 0)
@@ -809,7 +809,7 @@ static void IWRAM_CODE game_over() {
     state = STATE_END;
 }
 
-static void IWRAM_CODE write_u32_by_object(u16 x, u16 y, u16 palette, u32 value) {
+static void write_u32_by_object(u16 x, u16 y, u16 palette, u32 value) {
     while (true) {
         u32 current = DivMod(value, 10);
 

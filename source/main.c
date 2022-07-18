@@ -1,6 +1,6 @@
 #include "main.h"
 
-IWRAM_CODE static void write_u32_by_object(u16 x, u16 y, u16 palette, u32 value) {
+static void write_u32_by_object(u16 x, u16 y, u16 palette, u32 value) {
     while (true) {
         u32 current = DivMod(value, 10);
 
@@ -14,7 +14,7 @@ IWRAM_CODE static void write_u32_by_object(u16 x, u16 y, u16 palette, u32 value)
     }
 }
 
-IWRAM_CODE int main() {
+int main() {
     // IRQ
     irqInit();
     irqSet(IRQ_VBLANK, mmVBlank);
